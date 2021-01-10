@@ -1,52 +1,65 @@
 package web.dao;
 
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 import web.model.User;
 
-import java.util.ArrayList;
+import javax.persistence.EntityManager;
+import javax.persistence.PersistenceContext;
+import java.lang.reflect.ParameterizedType;
 import java.util.List;
 
 
-@Component
+@Repository
+@Transactional
 public class UserDaoImpl implements UserDao {
-    List<User> list;
-    private long COUNT;
-    {
-        list = new ArrayList<>();
 
-        list.add(new User(++COUNT,"name1","lastname1",25));
-        list.add(new User(++COUNT,"name2","lastName2",23));
-        list.add(new User(++COUNT,"name3","lastName3",54));
-        list.add(new User(++COUNT,"name4","lastName4",45));
+
+    @PersistenceContext
+    private EntityManager entityManager;
+
+    @Transactional(readOnly = false)
+    public void flush() {
+        entityManager.flush();
     }
 
 
     @Override
     public void save(User user) {
-        user.setId(++COUNT);
-        list.add(user);
+        entityManager.persist(user);
     }
 
     @Override
-    public void userUpdate(int id, User user) {
-        User userUp = showUserId(id);
-        userUp.setName(user.getName());
-        userUp.setLastName(user.getLastName());
-        userUp.setAge(user.getAge());
+    public void update(User user, long id) {
+        User user1 = showUserId(id);
+        user1.setName(user.getName());
+        user1.setLastName(user.getLastName());
+        user1.setAge(user.getAge());
+        entityManager.persist(user1);
     }
 
-    @Override
-    public void delete(int id) {
-        list.removeIf(user -> user.getId()==id);
-    }
 
     @Override
+    public void delete(long id){
+        User user = showUserId(id);
+        entityManager.remove(user);
+    }
+
+
+
+    @Override
+    @Transactional(readOnly = true)
     public List<User> showAllUser() {
-        return list;
+        List<User> query=entityManager.createQuery("from User",User.class).getResultList();
+        return query;
+//        return null;
     }
 
     @Override
-    public User showUserId(int id) {
-        return list.stream().filter(user -> user.getId()==id).findAny().orElse(null);
+    @Transactional(readOnly = true)
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+    public User showUserId(long id) {
+        User user = entityManager.find(User.class,id);
+        return user ;
     }
 }
